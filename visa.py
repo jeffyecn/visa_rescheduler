@@ -139,11 +139,14 @@ def do_login_action():
     print("\tlogin successful!")
 
 
-def get_date():
+def get_date(retry_login=True):
     driver.get(DATE_URL)
     if not is_logged_in():
-        login()
-        return get_date()
+        if retry_login:
+            login()
+            return get_date(False)
+        print("Retry login failed")
+        raise RuntimeError("Login failed")
     else:
         content = driver.find_element(By.TAG_NAME, 'pre').text
         date = json.loads(content)
@@ -239,21 +242,24 @@ def push_notification(dates):
 
 if __name__ == "__main__":
     login()
-    retry_count = 0
+    exception_count = 0
     while 1:
-        if retry_count > 6:
+        if exception_count > 6:
             break
         try:
             print("------------------")
             print(datetime.today())
-            print(f"Retry count: {retry_count}")
+            print(f"Exception count: {exception_count}")
             print()
 
             dates = get_date()[:5]
             if not dates:
               msg = "List is empty"
               send_notification(msg)
-              EXIT = True
+              print("Maybe banned, wait cooling down")
+              time.sleep(COOLDOWN_TIME)
+              continue
+
             print_dates(dates)
             date = get_available_date(dates)
             print()
@@ -266,16 +272,14 @@ if __name__ == "__main__":
                 print("------------------exit")
                 break
 
-            if not dates:
-              msg = "List is empty"
-              send_notification(msg)
-              #EXIT = True
-              time.sleep(COOLDOWN_TIME)
-            else:
-              time.sleep(RETRY_TIME)
+            exception_count = 0
+
+            print("will retry later")
+            time.sleep(RETRY_TIME)
 
         except:
-            retry_count += 1
+            exception_count += 1
+            print("exception, will try again later")
             time.sleep(EXCEPTION_TIME)
 
     if(not EXIT):
