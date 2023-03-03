@@ -210,15 +210,12 @@ def print_dates(dates):
     print()
 
 
-last_seen = None
-
-
 def get_available_date(dates):
-    global last_seen
+    proposed_date = None
 
-    def is_earlier(date):
-        my_date = datetime.strptime(MY_SCHEDULE_DATE, "%Y-%m-%d")
-        new_date = datetime.strptime(date, "%Y-%m-%d")
+    def is_earlier(check_date, previous_date):
+        my_date = datetime.strptime(previous_date if previous_date else MY_SCHEDULE_DATE, "%Y-%m-%d")
+        new_date = datetime.strptime(check_date, "%Y-%m-%d")
         result = my_date > new_date
         print(f'Is {my_date} > {new_date}:\t{result}')
         return result
@@ -226,11 +223,11 @@ def get_available_date(dates):
     print("Checking for an earlier date:")
     for d in dates:
         date = d.get('date')
-        if is_earlier(date) and date != last_seen:
+        if is_earlier(date, proposed_date):
             _, month, day = date.split('-')
             if(MY_CONDITION(month, day)):
-                last_seen = date
-                return date
+                proposed_date = date
+    return proposed_date
 
 
 def push_notification(dates):
